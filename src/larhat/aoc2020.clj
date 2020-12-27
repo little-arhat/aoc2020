@@ -192,6 +192,50 @@
     (filter valid-passport-2)
     (count)))
 
+(defn seat-lookup [{:keys [rows, columns], :as acc} char]
+  (let [[min-row max-row] rows
+        [min-column max-column] columns
+        row (+ (/ (- max-row min-row) 2) min-row)
+        column (+ (/ (- max-column min-column) 2) min-column)]
+    (cond
+      (= char \F) {:rows [min-row row], :columns columns}
+      (= char \B) {:rows [row max-row], :columns columns}
+      (= char \L) {:rows rows, :columns [min-column column]}
+      (= char \R) {:rows rows, :columns [column max-column]}
+      :else acc)))
+
+(defn find-seat [barcode]
+  (let [{:keys [rows columns]}
+        (reduce seat-lookup
+          {:rows [0 127] :columns [0 7]}
+          barcode)
+        [_ row]    rows
+        [_ column] columns]
+    [(int row) (int column)]))
+
+(defn seat-id [[row column]]
+  (+ (* row 8) column))
+
+(defn seat-ids [inp]
+  (->> inp
+    (map find-seat)
+    (map seat-id)))
+
+(defn find-missing [seats]
+  (reduce
+    (fn [prev-el el]
+      (if (< 1 (- el prev-el))
+        (reduced (dec el))
+        el))
+    (first seats)
+    (rest seats)))
+
+(defn aoc-5 []
+  (->> (inp-lines 5)
+    (seat-ids)
+    sort
+    find-missing))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
