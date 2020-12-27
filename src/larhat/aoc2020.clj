@@ -6,7 +6,7 @@
 
 (defn inp-seq [n]
   (-> (input n)
-    (clojure.string/split #"\s")))
+    (clojure.string/split #"\n")))
 
 (defn parse-int [n]
   (Integer. n))
@@ -23,10 +23,36 @@
   (let [i (map parse-int (inp-seq 1))]
     (first (for [x i
                  y i
-                 z y
+                 z i
                  :let  [sum (+ x y z)]
                  :when (= sum 2020)]
              (* x y z)))))
+
+(def pass-r #"(\d+)-(\d+) (\w): (\w+)")
+(defn parse-password [p]
+  (let [[_ min max char pass] (re-find pass-r p)]
+    {:min (parse-int min)
+     :max (parse-int max)
+     :char (first (char-array char))
+     :pass pass}))
+
+(defn valid-pass [{:keys [min max char pass]}]
+  (let [filtered (filter #(= % char) pass)
+        c (count filtered)]
+    (and
+      (>= c min)
+      (<= c max))))
+
+(defn valid-pass-2 [:keys [pos-1 pos-2 char pass]]
+  (or
+    (= char (.charAt pass (+1 pos-1)))
+    (= char (.charAt pass (+1 pos-2)))))
+
+(defn aoc-2 []
+  (->> (inp-seq 2)
+    (map parse-password)
+    (filter valid-pass)
+    (count)))
 
 (defn -main
   "I don't do a whole lot ... yet."
