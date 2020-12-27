@@ -1,0 +1,34 @@
+(ns larhat.aoc2020
+  (:gen-class))
+
+(defn input [n]
+  (slurp (format "resources/larhat/inp%d.txt" n)))
+
+(defn inp-seq [n]
+  (-> (input n)
+    (clojure.string/split #"\s")))
+
+(defn parse-int [n]
+  (Integer. n))
+
+(defn aoc-1 []
+  (let [i (map parse-int (inp-seq 1))]
+    (first (for [x i
+                 y i
+                 :let  [sum (+ x y)]
+                 :when (= sum 2020)]
+             (* x y)))))
+
+(defn aoc-1-2 []
+  (let [i (map parse-int (inp-seq 1))]
+    (first (for [x i
+                 y i
+                 z y
+                 :let  [sum (+ x y z)]
+                 :when (= sum 2020)]
+             (* x y z)))))
+
+(defn -main
+  "I don't do a whole lot ... yet."
+  [& args]
+  (println "Hello, World!"))
