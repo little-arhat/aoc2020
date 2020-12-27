@@ -1,17 +1,20 @@
 (ns larhat.aoc2020
+  (:require
+   [clojure.string :as str]
+   [clojure.set :as cl-set])
   (:gen-class))
 
 (defn input [n]
   (slurp (format "resources/larhat/inp%d.txt" n)))
 
 (defn words [s]
-  (clojure.string/split s #"\s"))
+  (str/split s #"\s"))
 
 (defn lines [s]
-  (clojure.string/split s #"\n"))
+  (str/split s #"\n"))
 
 (defn phrases [s]
-  (clojure.string/split s #"\n\n"))
+  (str/split s #"\n\n"))
 
 (defn inp-words [n]
   (-> (input n) words))
@@ -124,7 +127,7 @@
 
 (defn valid-passport [passport]
   (let [passport-fields (get-fields passport)
-        diff (clojure.set/difference fields passport-fields)]
+        diff (cl-set/difference fields passport-fields)]
     (or
       (empty? diff)
       (= #{:cid} diff))))
@@ -170,12 +173,12 @@
 
 (def check-passport
   (->> passport-rules
-    (clojure.set/map-invert)
+    (cl-set/map-invert)
     (map #(apply comp %))
     (apply every-pred)))
 
 (defn get-field-value [s]
-  (let [[f v] (clojure.string/split s #":")]
+  (let [[f v] (str/split s #":")]
     [(keyword f) v]))
 
 (defn get-fields-2 [passport]
