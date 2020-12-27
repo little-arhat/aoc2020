@@ -137,17 +137,14 @@
 
 (defn between [as min max]
   (when as
-    (let [a (parse-int as)]
-      (and (>= a min) (<= a max)))))
-
-(defn split-str-backwards [s i]
-  (let [l (count s)
-        l' (- l i)]
-    [(subs s 0 l') (subs s l')]))
+    (<= min (parse-int as) max)))
 
 (defn valid-height [s]
   (when s
-    (let [[d m] (split-str-backwards s 2)]
+    (let [l (count s)
+          l' (- l 2)
+          d (subs s 0 l')
+          m (subs s l')]
       (cond
         (= "cm" m) (between d 150 193)
         (= "in" m) (between d 59 76)
@@ -171,21 +168,23 @@
    :pid #(safe-re-seq pid-r %)
    :cid (constantly true)})
 
+(def check-passport
+  (->> passport-rules
+    (clojure.set/map-invert)
+    (map #(apply comp %))
+    (apply every-pred)))
+
 (defn get-field-value [s]
   (let [[f v] (clojure.string/split s #":")]
     [(keyword f) v]))
 
 (defn get-fields-2 [passport]
-  (->> passport
-    (map get-field-value)
-    (into {})))
+  (into {} (map get-field-value passport)))
 
 (defn valid-passport-2 [passport]
-  (let [passport-fields (get-fields-2 passport)]
-    (every?
-      (fn [[k f]]
-        (f (k passport-fields)))
-     passport-rules)))
+  (-> passport
+    get-fields-2
+    check-passport))
 
 (defn aoc-4-2 []
   (->> (inp-phrases 4)
