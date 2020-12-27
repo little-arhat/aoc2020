@@ -236,6 +236,29 @@
     sort
     find-missing))
 
+(defn num-anwsers [s]
+  (->> s
+    (remove #{\space \newline})
+    (into #{})
+    count))
+
+(defn aoc-6 []
+  (->> (inp-phrases 6)
+    (map num-anwsers)
+    (reduce +)))
+
+(defn num-answers-2 [s]
+  (->> s
+    lines
+    (map set)
+    (reduce clojure.set/intersection)
+    count))
+
+(defn aoc-6-2 []
+  (->> (inp-phrases 6)
+    (map num-answers-2)
+    (reduce +)))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
