@@ -337,7 +337,7 @@
 (defn count-inner-bags [g start]
   (let [links (start g)]
     (if links
-      (reduce + 0
+      (reduce +
         (map (fn [[n s]]
                (+ n (* n
                       (count-inner-bags g s))))
@@ -348,6 +348,64 @@
   (as-> (inp-lines 7) x
     (parse-bags-2 x)
     (count-inner-bags x :shiny-gold)))
+
+(defn parse-cmd [l]
+  (let [[left right] (str/split l #" ")]
+    [(keyword left)
+     (parse-int right)]))
+
+(defn execute-no-loops-aux [cmds acc pos visited]
+  (if (visited pos)
+    acc
+    (let [[cmd arg] (nth cmds pos)
+          visited' (conj visited pos)]
+      (cond
+        (= :acc cmd) (recur cmds (+ acc arg) (inc pos) visited')
+        (= :nop cmd) (recur cmds acc (inc pos) visited')
+        (= :jmp cmd) (recur cmds acc (+ pos arg) visited')))))
+
+(defn execute-no-loops [cmds]
+  (execute-no-loops-aux cmds 0 0 #{}))
+
+(defn swap-jmp-nop [cmd]
+  (cond
+    (= cmd :nop) :jmp
+    (= cmd :jmp) :nop
+    :else cmd))
+
+(defn replace-if [i req-i cmd]
+  (if (= i req-i)
+    (swap-jmp-nop cmd)
+    cmd))
+
+(defn aoc-8 []
+  (->> (inp-lines 8)
+    (map parse-cmd)
+    vec
+    execute-no-loops))
+
+
+(defn execute-no-loops-with-replace [cmds acc pos visited replace]
+  (cond
+    (= (count cmds) pos) acc
+    (visited pos) (recur cmds 0 0 #{} (inc replace))
+    :else
+    (let [[pre-cmd arg] (nth cmds pos)
+          cmd (replace-if pos replace pre-cmd)
+          visited' (conj visited pos)]
+      (cond
+        (= :acc cmd) (recur cmds (+ acc arg) (inc pos) visited' replace)
+        (= :nop cmd) (recur cmds acc (inc pos) visited' replace)
+        (= :jmp cmd) (recur cmds acc (+ pos arg) visited' replace)))))
+
+(defn execute-no-loops-2 [cmds]
+  (execute-no-loops-with-replace cmds 0 0 #{} 0))
+
+(defn aoc-8-2 []
+  (->> (inp-lines 8)
+    (map parse-cmd)
+    vec
+    execute-no-loops-2))
 
 (defn -main
   "I don't do a whole lot ... yet."
