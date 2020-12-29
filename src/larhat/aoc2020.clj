@@ -28,6 +28,9 @@
 (defn parse-int [n]
   (Integer. n))
 
+(defn parse-long [n]
+  (Long. n))
+
 (defn aoc-1 []
   (let [i (map parse-int (inp-lines 1))]
     (first (for [x i
@@ -406,6 +409,42 @@
     (map parse-cmd)
     vec
     execute-no-loops-2))
+
+(defn xmas-valid [batch]
+  (let [preamble (butlast batch)
+        inp (last batch)]
+    (when (nil? (first (filter #(= % inp)
+                         (for [x preamble y preamble]
+                           (+ x y)))))
+      inp)))
+
+(defn pre-aoc-9 []
+  (->> (inp-lines 9)
+    (map parse-long)
+    vec))
+
+(defn mid-aoc-9 [i]
+  (->> i
+    (partition 26 1)
+    (keep xmas-valid)
+    first))
+
+(defn aoc-9 []
+  (mid-aoc-9 (pre-aoc-9)))
+
+(defn subseq-sum-eq [coll el]
+  (->>
+    (iterate rest coll)
+    (take-while seq)
+    (mapcat #(reductions conj [] %))
+    (filter #(= el (reduce + %)))
+    first))
+
+(defn aoc-9-2 []
+  (let [inp (pre-aoc-9)
+        inv (mid-aoc-9 inp)
+        subs (subseq-sum-eq inp inv)]
+    (+ (apply min subs) (apply max subs))))
 
 (defn -main
   "I don't do a whole lot ... yet."
