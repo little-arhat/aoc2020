@@ -262,6 +262,93 @@
     (map num-answers-2)
     (reduce +)))
 
+(defn no-spaces [x]
+  (str/replace x " " "-"))
+
+(defn parse-bag [l]
+  (let [[left right] (str/split l #"contain")
+         outer (-> left
+                 (str/split #"bag")
+                 first
+                 str/trim
+                 no-spaces
+                 keyword)
+        inners (as-> right x
+                 (str/trim x)
+                 (str/split x #"(bags|bag|\d+|,|\.)")
+                 (remove str/blank? x)
+                 (map str/trim x)
+                 (map no-spaces x)
+                 (map keyword x))]
+    (map #(vector % outer) inners)))
+
+(defn parse-bags [l]
+  (->> l
+    (mapcat parse-bag)
+    (reduce (fn [m [f v]]
+              (update m f
+                #(conj % v))) {})))
+
+(defn find-paths [g start path all-paths]
+  (let [links (start g)]
+    (if links
+      (do
+        (mapcat
+          #(count-paths g % (conj path %)
+             (conj all-paths (conj path %)))
+          links))
+                                        ; else
+      path)))
+
+(defn aoc-7 []
+  (as-> (inp-lines 7) x
+    (parse-bags x)
+    (find-paths x :shiny-gold [:shiny-gold] [])
+    (map last x)
+    (distinct x)))
+
+(defn count-and-bag [l]
+  (let [[[_ n bag]] (re-seq #"(\d+) ([a-z ]+)" l)]
+    (when n
+      [(parse-int n) (keyword (no-spaces bag))])))
+
+(defn parse-bag-2 [l]
+  (let [[left right] (str/split l #"contain")
+        outer        (-> left
+                       (str/split #"bag")
+                       first
+                       str/trim
+                       no-spaces
+                       keyword)
+        inners       (as-> right x
+                       (str/trim x)
+                       (str/split x #"(bags|bag|,|\.)")
+                       (map str/trim x)
+                       (remove str/blank? x)
+                       (map count-and-bag x)
+                       (remove empty? x))]
+    [outer inners]))
+
+(defn parse-bags-2 [l]
+  (->> l
+    (map parse-bag-2)
+    (into {})))
+
+(defn count-inner-bags [g start]
+  (let [links (start g)]
+    (if links
+      (reduce + 0
+        (map (fn [[n s]]
+               (+ n (* n
+                      (count-inner-bags g s))))
+          links))
+      0)))
+
+(defn aoc-7-2 []
+  (as-> (inp-lines 7) x
+    (parse-bags-2 x)
+    (count-inner-bags x :shiny-gold)))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
