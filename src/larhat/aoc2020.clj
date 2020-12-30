@@ -1,97 +1,77 @@
 (ns larhat.aoc2020
   (:require
+   [larhat.prelude :refer :all]
    [clojure.string :as str]
-   [clojure.set :as cl-set])
-  (:gen-class))
+   [clojure.set :as cl-set]))
 
-(defn input [n]
-  (slurp (format "resources/larhat/inp%d.txt" n)))
+(defn day-1-1 [data]
+  (as-> (map parse-int data) i
+    (for [x     i
+          y     i
+          :let  [sum (+ x y)]
+          :when (= sum 2020)]
+      (* x y))
+    (first i)))
+(defn run-day-1-1 []
+  (day-1-1 (inp-lines 1)))
 
-(defn words [s]
-  (str/split s #"\s"))
+(defn day-1-2 [data]
+  (as-> (map parse-int data) i
+    (for [x     i
+          y     i
+          z     i
+          :let  [sum (+ x y z)]
+          :when (= sum 2020)]
+      (* x y z))
+    (first i)))
+(defn run-day-1-2 []
+  (day-1-2 (inp-lines 1)))
 
-(defn lines [s]
-  (str/split s #"\n"))
-
-(defn phrases [s]
-  (str/split s #"\n\n"))
-
-(defn inp-words [n]
-  (-> (input n) words))
-
-(defn inp-lines [n]
-  (-> (input n) lines))
-
-(defn inp-phrases [n]
-  (-> (input n) phrases))
-
-(defn parse-int [n]
-  (Integer. n))
-
-(defn parse-long [n]
-  (Long. n))
-
-(defn aoc-1 []
-  (let [i (map parse-int (inp-lines 1))]
-    (first (for [x i
-                 y i
-                 :let  [sum (+ x y)]
-                 :when (= sum 2020)]
-             (* x y)))))
-
-(defn aoc-1-2 []
-  (let [i (map parse-int (inp-lines 1))]
-    (first (for [x i
-                 y i
-                 z i
-                 :let  [sum (+ x y z)]
-                 :when (= sum 2020)]
-             (* x y z)))))
-
-(def pass-r #"(\d+)-(\d+) (\w): (\w+)")
 (defn parse-pass [p]
-  (let [[_ min max char pass] (re-find pass-r p)]
+  (let [[_ min max char pass] (re-find #"(\d+)-(\d+) (\w): (\w+)" p)]
     {:min (parse-int min)
      :max (parse-int max)
      :char (first (char-array char))
      :pass pass}))
 
 (defn valid-pass [{:keys [min max char pass]}]
-  (let [filtered (filter #(= % char) pass)
-        c (count filtered)]
-    (<= min c max)))
+  (as-> (filter #(= % char) pass) x
+    (count x)
+    (<= min x max)))
+
+(defn day-2-1 [data]
+  (->> data
+    (map parse-pass)
+    (filter valid-pass)
+    (count)))
+(defn run-day-2-1 []
+  (day-2-1 (inp-lines 2)))
 
 (defn valid-pass-2 [{:keys [min max char pass]}]
   (not=
     (= char (.charAt pass (dec min)))
     (= char (.charAt pass (dec max)))))
 
-(defn aoc-2 []
-  (->> (inp-lines 2)
-    (map parse-pass)
-    (filter valid-pass)
-    (count)))
-
-(defn aoc-2-2 []
-  (->> (inp-lines 2)
+(defn day-2-2 [data]
+  (->> data
     (map parse-pass)
     (filter valid-pass-2)
     (count)))
+(defn run-day-2-2 []
+  (day-2-2 (inp-lines 2)))
 
 (defn mod+ [a b m]
   (mod (+ a b) m))
 
-(defn find-path [map discard? step]
+(defn sliding-down [map discard? step]
   (let [width (count (first map))]
     (reduce
       (fn [{:keys [pos trees coord]} line]
         (let [pos'   (mod+ pos step width)
               ch     (.charAt line pos')
-              coord' [pos' ch line]
               trees' (if (= ch \#) (inc trees) trees)]
-          {:pos   pos', :trees trees',
-           :coord (conj coord coord')}))
-      {:pos 0, :trees 0, :coord [] }
+          {:pos   pos', :trees trees'}))
+      {:pos 0, :trees 0}
       (keep-indexed (fn [index elem]
                       (if (or (= 0 index) (discard? index))
                         nil
@@ -99,77 +79,70 @@
         map))))
 
 (defn find-trees [map discard? step]
-  (:trees (find-path map discard? step)))
+  (:trees (sliding-down map discard? step)))
 
-(defn aoc-3 []
-  (let [map (inp-lines 3)]
-    (find-trees map #(= 0 %) 3)))
+(defn day-3-1 [data]
+  (find-trees data #(= 0 %) 3))
+(defn run-day-3-1 []
+  (day-3-1 (inp-lines 3)))
 
-(defn aoc-3-2 []
-  (let [slope (inp-lines 3)]
-    (*
-      (find-trees slope (constantly false) 1)
-      (find-trees slope (constantly false) 3)
-      (find-trees slope (constantly false) 5)
-      (find-trees slope (constantly false) 7)
-      (find-trees slope #(odd? %) 1))))
+(defn day-3-2 [slope]
+  (*
+    (find-trees slope (constantly false) 1)
+    (find-trees slope (constantly false) 3)
+    (find-trees slope (constantly false) 5)
+    (find-trees slope (constantly false) 7)
+    (find-trees slope #(odd? %) 1)))
+(defn run-day-3-2 []
+  (day-3-2 (inp-lines 3)))
 
 (def fields #{:byr :iyr :eyr :hgt :hcl :ecl :pid :cid})
-
 (defn get-field [s]
   (-> s
     (subs 0 3)
     (keyword)))
 
-(defn get-fields [passport]
-  (->> passport
-    (map get-field)
-    (into #{})))
+(defn get-only-fields [passport]
+  (into #{} (map get-field) passport))
 
 (defn valid-passport [passport]
-  (let [passport-fields (get-fields passport)
+  (let [passport-fields (get-only-fields passport)
         diff (cl-set/difference fields passport-fields)]
     (or
       (empty? diff)
       (= #{:cid} diff))))
 
-(defn aoc-4 []
-  (->> (inp-phrases 4)
+(defn day-4-1 [data]
+  (->> data
     (map words)
     (filter valid-passport)
     (count)))
+(defn run-day-4-1 []
+  (day-4-1 (inp-phrases 4)))
 
 (defn between [as min max]
-  (when as
-    (<= min (parse-int as) max)))
+  (<= min (parse-int as) max))
 
 (defn valid-height [s]
-  (when s
-    (let [l (count s)
-          l' (- l 2)
-          d (subs s 0 l')
-          m (subs s l')]
-      (cond
+  (let [l (count s)
+        l' (- l 2)
+        d (subs s 0 l')
+        m (subs s l')]
+    (cond
         (= "cm" m) (between d 150 193)
-        (= "in" m) (between d 59 76)
-        :else      false))))
+        (= "in" m) (between d 59 76))))
 
-(def color-r #"^#[0-9a-f]{6}$")
-(def pid-r #"^\d{9}$")
-(def eyes #{:amb :blu :brn :gry :grn :hzl :oth})
-
-(defn safe-re-seq [r s]
-  (when s
-    (re-seq r s)))
+(defn required [nextp]
+  (fn [s] (when s (nextp s))))
 
 (def passport-rules
-  {:byr #(between % 1920 2002)
-   :iyr #(between % 2010 2020)
-   :eyr #(between % 2020 2030)
-   :hgt valid-height
-   :hcl #(safe-re-seq color-r %)
-   :ecl #(eyes (keyword %))
-   :pid #(safe-re-seq pid-r %)
+  {:byr (required #(between % 1920 2002))
+   :iyr (required #(between % 2010 2020))
+   :eyr (required #(between % 2020 2030))
+   :hgt (required valid-height)
+   :hcl (required #(re-seq #"^#[0-9a-f]{6}$" %))
+   :ecl (required #(#{"amb" "blu" "brn" "gry" "grn" "hzl" "oth"} %))
+   :pid (required #(re-seq #"^\d{9}$" %))
    :cid (constantly true)})
 
 (def check-passport
@@ -183,47 +156,32 @@
     [(keyword f) v]))
 
 (defn get-fields-2 [passport]
-  (into {} (map get-field-value passport)))
+  (into {} (map get-field-value) passport))
 
 (defn valid-passport-2 [passport]
   (-> passport
     get-fields-2
     check-passport))
 
-(defn aoc-4-2 []
-  (->> (inp-phrases 4)
+(defn day-4-2 [data]
+  (->> data
     (map words)
     (filter valid-passport-2)
     (count)))
+(defn run-day-4-2 []
+  (day-4-2 (inp-phrases 4)))
 
-(defn seat-lookup [{:keys [rows, columns], :as acc} char]
-  (let [[min-row max-row] rows
-        [min-column max-column] columns
-        row (+ (/ (- max-row min-row) 2) min-row)
-        column (+ (/ (- max-column min-column) 2) min-column)]
-    (cond
-      (= char \F) {:rows [min-row row], :columns columns}
-      (= char \B) {:rows [row max-row], :columns columns}
-      (= char \L) {:rows rows, :columns [min-column column]}
-      (= char \R) {:rows rows, :columns [column max-column]}
-      :else acc)))
+(defn find-seat-id [barcode]
+  (-> barcode
+    (str/escape {\F \0 \B \1 \R \1 \L \0})
+    (parse-int 2)))
 
-(defn find-seat [barcode]
-  (let [{:keys [rows columns]}
-        (reduce seat-lookup
-          {:rows [0 127] :columns [0 7]}
-          barcode)
-        [_ row]    rows
-        [_ column] columns]
-    [(int row) (int column)]))
-
-(defn seat-id [[row column]]
-  (+ (* row 8) column))
-
-(defn seat-ids [inp]
-  (->> inp
-    (map find-seat)
-    (map seat-id)))
+(defn day-5-1 [data]
+  (->> data
+    (map find-seat-id)
+    (apply max)))
+(defn run-day-5-1 []
+  (day-5-1 (inp-lines 5)))
 
 (defn find-missing [seats]
   (reduce
@@ -231,14 +189,15 @@
       (if (< 1 (- el prev-el))
         (reduced (dec el))
         el))
-    (first seats)
-    (rest seats)))
+    seats))
 
-(defn aoc-5 []
-  (->> (inp-lines 5)
-    (seat-ids)
+(defn day-5-2 [data]
+  (->> data
+    (map find-seat-id)
     sort
     find-missing))
+(defn run-day-5-2 []
+  (day-5-2 (inp-lines 5)))
 
 (defn num-anwsers [s]
   (->> s
@@ -246,10 +205,12 @@
     (into #{})
     count))
 
-(defn aoc-6 []
-  (->> (inp-phrases 6)
+(defn day-6-1 [data]
+  (->> data
     (map num-anwsers)
     (reduce +)))
+(defn run-day-6-1 []
+  (day-6-1 (inp-phrases 6)))
 
 (defn num-answers-2 [s]
   (->> s
@@ -258,10 +219,12 @@
     (reduce clojure.set/intersection)
     count))
 
-(defn aoc-6-2 []
-  (->> (inp-phrases 6)
+(defn day-6-2 [data]
+  (->> data
     (map num-answers-2)
     (reduce +)))
+(defn run-day-6-2 []
+  (day-6-2 (inp-phrases 6)))
 
 (defn no-spaces [x]
   (str/replace x " " "-"))
@@ -290,23 +253,24 @@
               (update m f
                 #(conj % v))) {})))
 
-(defn find-paths [g start path all-paths]
+(defn find-all-bags [start path g]
   (let [links (start g)]
+    do
     (if links
-      (do
-        (mapcat
-          #(count-paths g % (conj path %)
-             (conj all-paths (conj path %)))
-          links))
+      (mapcat
+        #(find-all-bags % (conj path %) g)
+        links)
                                         ; else
       path)))
 
-(defn aoc-7 []
-  (as-> (inp-lines 7) x
-    (parse-bags x)
-    (find-paths x :shiny-gold [:shiny-gold] [])
-    (map last x)
-    (distinct x)))
+(defn day-7-1 [data]
+  (->> data
+    parse-bags
+    (find-all-bags :shiny-gold [])
+    distinct
+    count))
+(defn run-day-7-1 []
+  (day-7-1 (inp-lines 7)))
 
 (defn count-and-bag [l]
   (let [[[_ n bag]] (re-seq #"(\d+) ([a-z ]+)" l)]
@@ -335,20 +299,22 @@
     (map parse-bag-2)
     (into {})))
 
-(defn count-inner-bags [g start]
+(defn count-inner-bags [start g]
   (let [links (start g)]
     (if links
       (reduce +
         (map (fn [[n s]]
                (+ n (* n
-                      (count-inner-bags g s))))
+                      (count-inner-bags s g))))
           links))
       0)))
 
-(defn aoc-7-2 []
-  (as-> (inp-lines 7) x
-    (parse-bags-2 x)
-    (count-inner-bags x :shiny-gold)))
+(defn day-7-2 [data]
+  (->> data
+    parse-bags-2
+    (count-inner-bags :shiny-gold)))
+(defn run-day-7-2 []
+  (day-7-2 (inp-lines 7)))
 
 (defn parse-cmd [l]
   (let [[left right] (str/split l #" ")]
@@ -379,12 +345,13 @@
     (swap-jmp-nop cmd)
     cmd))
 
-(defn aoc-8 []
-  (->> (inp-lines 8)
+(defn day-8-1 [data]
+  (->> data
     (map parse-cmd)
     vec
     execute-no-loops))
-
+(defn run-day-8-1 []
+  (day-8-1 (inp-lines 8)))
 
 (defn execute-no-loops-with-replace [cmds acc pos visited replace]
   (cond
@@ -402,11 +369,13 @@
 (defn execute-no-loops-2 [cmds]
   (execute-no-loops-with-replace cmds 0 0 #{} 0))
 
-(defn aoc-8-2 []
-  (->> (inp-lines 8)
+(defn day-8-2 [data]
+  (->> data
     (map parse-cmd)
     vec
     execute-no-loops-2))
+(defn run-day-8-2 []
+  (day-8-2 (inp-lines 8)))
 
 (defn xmas-valid [batch]
   (let [preamble (butlast batch)
@@ -416,8 +385,8 @@
                            (+ x y)))))
       inp)))
 
-(defn pre-aoc-9 []
-  (->> (inp-lines 9)
+(defn pre-aoc-9 [data]
+  (->> data
     (map parse-long)
     vec))
 
@@ -427,8 +396,10 @@
     (keep xmas-valid)
     first))
 
-(defn aoc-9 []
-  (mid-aoc-9 (pre-aoc-9)))
+(defn day-9-1 [data]
+  (mid-aoc-9 (pre-aoc-9 data)))
+(defn run-day-9-1 []
+  (day-9-1 (inp-lines 9)))
 
 (defn subseq-sum-eq [coll el]
   (->>
@@ -438,11 +409,13 @@
     (filter #(= el (reduce + %)))
     first))
 
-(defn aoc-9-2 []
-  (let [inp (pre-aoc-9)
+(defn day-9-2 [data]
+  (let [inp (pre-aoc-9 data)
         inv (mid-aoc-9 inp)
         subs (subseq-sum-eq inp inv)]
     (+ (apply min subs) (apply max subs))))
+(defn run-day-9-2 []
+  (day-9-2 (inp-lines 9)))
 
 (defn -main
   "I don't do a whole lot ... yet."
