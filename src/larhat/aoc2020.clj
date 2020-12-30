@@ -59,9 +59,7 @@
 (defn valid-pass [{:keys [min max char pass]}]
   (let [filtered (filter #(= % char) pass)
         c (count filtered)]
-    (and
-      (>= c min)
-      (<= c max))))
+    (<= min c max)))
 
 (defn valid-pass-2 [{:keys [min max char pass]}]
   (not=
