@@ -10,7 +10,7 @@
   (str/split s #"\s"))
 
 (defn lines [s]
-  (str/split s #"\n"))
+  (str/split-lines s))
 
 (defn phrases [s]
   (str/split s #"\n\n"))

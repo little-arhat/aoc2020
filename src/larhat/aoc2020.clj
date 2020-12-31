@@ -347,8 +347,7 @@
 
 (defn day-8-1 [data]
   (->> data
-    (map parse-cmd)
-    vec
+    (mapv parse-cmd)
     execute-no-loops))
 (defn run-day-8-1 []
   (day-8-1 (inp-lines 8)))
@@ -416,6 +415,97 @@
     (+ (apply min subs) (apply max subs))))
 (defn run-day-9-2 []
   (day-9-2 (inp-lines 9)))
+
+(defn with-device [chain]
+  (concat chain (list (+ 3 (last chain)))))
+(defn with-port [chain]
+  (cons 0 chain))
+
+(defn chain-diffs [chain]
+  (->> chain
+    (partition 2 1)
+    (map #(apply - %))
+    (map #(* -1 %))))
+
+(defn mk-chain [data]
+  (->> data
+    (map parse-int)
+    sort
+    with-device
+    with-port))
+
+(defn day-10-1 [data]
+  (->> data
+    mk-chain
+    chain-diffs
+    frequencies
+    (#(* (% 1) (% 3)))))
+(defn run-day-10-1 []
+  (day-10-1 (inp-lines 10)))
+
+(def chain-counts-rec
+  (memoize
+    (fn [adapter chain-set]
+      (cond
+        (not (chain-set adapter)) 0
+        (= adapter 0)             1
+        :else
+        (+
+          (chain-counts-rec (- adapter 1) chain-set)
+          (chain-counts-rec (- adapter 2) chain-set)
+          (chain-counts-rec (- adapter 3) chain-set))))))
+
+(defn chain-counts-rec* [chain]
+  (let [device (last chain)
+        chain-set (set chain)]
+    (chain-counts-rec device chain-set)))
+
+(defn chain-counts-dp [chain]
+  (reduce
+    (fn [routes adapter]
+      (assoc routes adapter
+        (apply + (map #(get routes % 0)
+                   (range (- adapter 3) adapter)))))
+    {0 1}
+    (rest chain)))
+
+(defn chain-counts-dp* [chain]
+  ((chain-counts-dp chain) (last chain)))
+
+(defn tribonacci [x]
+  (last
+    (reduce
+      (fn [[a b c] n]
+        (conj [b c] (+ a b c)))
+      [0 0 1]
+      (range x))))
+
+(defn chain-counts-formula [chain]
+  (->> chain
+    chain-diffs ; diffs between adapters
+    (partition-by identity) ; subsequent diffs of the same value
+    (filter #(some #{1} %)) ; subsequent 1s: only those add choices
+    (map count)
+    (map tribonacci) ; tribonacci number defines number of choices
+    (reduce *)))
+
+(defn day-10-2-dp [data]
+  (->> data
+    mk-chain
+    chain-counts-dp*))
+(defn day-10-2-rec [data]
+  (->> data
+    mk-chain
+    chain-counts-rec*))
+(defn day-10-2-formula [data]
+  (->> data
+    mk-chain
+    chain-counts-formula))
+(defn run-day-10-2 []
+  (let [i (inp-lines 10)]
+    [(day-10-2-dp i)
+     (day-10-2-rec i)
+     (day-10-2-formula i)]))
 
 (defn -main
   "I don't do a whole lot ... yet."
