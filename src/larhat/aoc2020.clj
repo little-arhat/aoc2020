@@ -484,7 +484,7 @@
   (let [xf
         (comp
           (partition-by identity) ; find subsequent deltas of the same length
-          (filter #(some #{1} %)) ; in practice there only 1 or 3,
+          (filter #(some #{1} %)) ; in practice there are only 1s or 3s,
                                   ; and only diffs of 1 add variability
           (map count)             ; count number of subsequent 1s
           (map tribonacci))       ; compute number of choices as tribonnaci of number of subsequent 1s
