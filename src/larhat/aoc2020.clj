@@ -481,13 +481,15 @@
       (range x))))
 
 (defn chain-counts-formula [chain]
-  (->> chain
-    chain-diffs ; diffs between adapters
-    (partition-by identity) ; subsequent diffs of the same value
-    (filter #(some #{1} %)) ; subsequent 1s: only those add choices
-    (map count)
-    (map tribonacci) ; tribonacci number defines number of choices
-    (reduce *)))
+  (let [xf
+        (comp
+          (partition-by identity) ; find subsequent deltas of the same length
+          (filter #(some #{1} %)) ; in practice there only 1 or 3,
+                                  ; and only diffs of 1 add variability
+          (map count)             ; count number of subsequent 1s
+          (map tribonacci))       ; compute number of choices as tribonnaci of number of subsequent 1s
+        ]
+    (transduce xf * (chain-diffs chain))))
 
 (defn day-10-2-dp [data]
   (->> data
