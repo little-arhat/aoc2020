@@ -472,13 +472,15 @@
 (defn chain-counts-dp* [chain]
   ((chain-counts-dp chain) (last chain)))
 
-(defn tribonacci [x]
-  (last
-    (reduce
-      (fn [[a b c] n]
-        (conj [b c] (+ a b c)))
-      [0 0 1]
-      (range x))))
+(def tribonacci
+  (memoize
+    (fn [x]
+      (last
+        (reduce
+          (fn [[a b c] n]
+            (conj [b c] (+ a b c)))
+          [0 0 1]
+          (range x))))))
 
 (defn chain-counts-formula [chain]
   (let [xf
@@ -508,6 +510,113 @@
     [(day-10-2-dp i)
      (day-10-2-rec i)
      (day-10-2-formula i)]))
+
+(def free \L)
+(def occupied \#)
+(def floor? #(= \. %))
+(defn occupied? [ch]
+  (= ch occupied))
+(def free? (complement occupied?))
+(def all-free? #(every? free? %))
+(def num-occupied #(count (filter occupied? %)))
+
+(def mins [-1 0 1])
+(defn neighbours-ixs [height width [x y]]
+  (let [smh (comp (partial bound 0 (dec height)) +)
+        smw (comp (partial bound 0 (dec width)) +)
+        points (for [xd mins yd mins]
+                 [(smh x xd) (smw y yd)])]
+    (distinct (filter #(not= % [x y]) points))))
+(defn neighbours-chs [field ixs]
+  (map #(get-in field %) ixs))
+
+(defn neighbours [field height width xy]
+  (neighbours-chs field (neighbours-ixs height width xy)))
+
+(def dirs (for [xd mins yd mins
+                :when (or (not= 0 xd) (not= 0 yd))]
+            [xd yd]))
+(def directions (map (fn [[xd yd]]
+                       [#(+ xd %) #(+ yd %)]) dirs))
+
+(defn take-while-and-one [pred coll]
+  (lazy-seq
+    (when-let [s (seq coll)]
+      (if (pred (first s))
+        (cons (first s) (take-while-and-one pred (rest s)))
+        (list (first s))))))
+
+(defn first-seat-in-line [field height width [dirx diry] start]
+  (let [f (fn [[x y]]
+            [(dirx x) (diry y)])
+        pr (fn [[x y]]
+                (and
+                  (<= 0 x)
+                  (<= 0 y)
+                  (< x height)
+                  (< y height)))]
+    (->>
+      (iterate f start)
+      (drop 1)
+      (take-while pr)
+      (map #(get-in field %))
+      (take-while-and-one floor?)
+      last)))
+
+(defn neighbours-2 [field height width [x y]]
+  (->>
+    directions
+    (map #(line-of-view field height width % [x y]))
+    (filter some?)
+    (remove floor?)))
+
+(defn transform-one-seat [field nbf lim height width xy]
+  (let [seat (get-in field xy)
+        nx   (nbf field height width xy)]
+    (cond
+      (floor? seat)                                  seat
+      (and (free? seat) (all-free? nx))              \#
+      (and (occupied? seat) (<= lim (num-occupied nx))) \L
+      :else                                          seat)))
+
+(defn transform-seats [field nbf lim]
+  (let [height (count field)
+        width (count (first field))]
+    (mapv
+      (fn [x]
+        (mapv
+          (fn [y]
+            (transform-one-seat field nbf lim height width [x y]))
+          (range width)))
+      (range height))))
+
+(def prpr (partial mapv #(apply str %)))
+(defn dims [c] [(count c) (count (first c))])
+(defn find-fixed-point-seats [nbf lim data]
+  (let [f #(transform-seats % nbf lim)]
+    (reduce (fn [prev current]
+              (if (= prev current)
+                (reduced current)
+                current))
+      (iterate f data))))
+
+(defn day-11-1 [data]
+  (->> data
+    (mapv vec)
+    (find-fixed-point-seats neighbours 4)
+    flatten
+    num-occupied))
+(defn run-day-11-1 []
+  (day-11-1 (inp-lines 11)))
+
+(defn day-11-2 [data]
+  (->> data
+    (mapv vec)
+    (find-fixed-point-seats neighbours-2 5)
+    flatten
+    num-occupied))
+(defn run-day-11-2 []
+  (day-11-2 (inp-lines 11)))
 
 (defn -main
   "I don't do a whole lot ... yet."

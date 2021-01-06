@@ -4,7 +4,10 @@
    [clojure.set :as cl-set]))
 
 (defn input [n]
-  (slurp (format "resources/larhat/inp%d.txt" n)))
+  (let [name (if (number? n)
+               (str "inp" n)
+               n)]
+    (slurp (format "resources/larhat/%s.txt" name))))
 
 (defn words [s]
   (str/split s #"\s"))
@@ -30,3 +33,6 @@
 
 (defn parse-long [n]
   (Long. n))
+
+(defn bound [mi ma x]
+  (min ma (max mi x)))
