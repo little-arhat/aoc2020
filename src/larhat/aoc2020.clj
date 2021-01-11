@@ -566,7 +566,7 @@
 (defn neighbours-2 [field height width [x y]]
   (->>
     directions
-    (map #(line-of-view field height width % [x y]))
+    (map #(first-seat-in-line field height width % [x y]))
     (filter some?)
     (remove floor?)))
 
