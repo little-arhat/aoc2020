@@ -539,12 +539,20 @@
 (def directions (map (fn [[xd yd]]
                        [#(+ xd %) #(+ yd %)]) dirs))
 
-(defn take-while-and-one [pred coll]
-  (lazy-seq
-    (when-let [s (seq coll)]
-      (if (pred (first s))
-        (cons (first s) (take-while-and-one pred (rest s)))
-        (list (first s))))))
+(defn take-while-with-last [pred]
+  (fn [rf]
+    (let [dv (volatile! true)]
+      (fn
+        ([] (rf))
+        ([result]  (rf result))
+        ([result input]
+         (if (pred input)
+           (rf result input)
+           (if @dv
+             (do
+               (vreset! dv nil)
+               (rf result input))
+             (reduced result))))))))
 
 (defn first-seat-in-line [field height width [dirx diry] start]
   (let [f (fn [[x y]]
@@ -554,13 +562,15 @@
                   (<= 0 x)
                   (<= 0 y)
                   (< x height)
-                  (< y height)))]
+                  (< y height)))
+        xf (comp
+             (drop 1)
+             (take-while pr)
+             (map #(get-in field %))
+             (take-while-with-last floor?))]
     (->>
       (iterate f start)
-      (drop 1)
-      (take-while pr)
-      (map #(get-in field %))
-      (take-while-and-one floor?)
+      (sequence xf)
       last)))
 
 (defn neighbours-2 [field height width [x y]]
